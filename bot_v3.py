@@ -74,6 +74,9 @@ def ask_groq(message_text, prompt_type="psychologist"):
 # Инициализация бота
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
+# ⚡ ДОБАВЛЕНО: храним режимы пользователей
+user_modes = {}
+
 # ОБРАБОТЧИКИ СООБЩЕНИЙ
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -81,12 +84,22 @@ def start(message):
 
 @bot.message_handler(commands=['psychologist', 'coach', 'hr'])
 def set_mode(message):
+    user_id = message.from_user.id
     mode = message.text[1:]  # Убираем слеш
+    
+    # ⚡ ИСПРАВЛЕНО: сохраняем режим для пользователя
+    user_modes[user_id] = mode
+    
     bot.reply_to(message, f"✅ Режим {mode} активирован! Теперь я в этом режиме.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
-    answer = ask_groq(message.text)
+    user_id = message.from_user.id
+    
+    # ⚡ ИСПРАВЛЕНО: берем режим из сохраненных (по умолчанию psychologist)
+    prompt_type = user_modes.get(user_id, "psychologist")
+    
+    answer = ask_groq(message.text, prompt_type)
     bot.reply_to(message, answer)
 
 # ЗАПУСК БОТА
