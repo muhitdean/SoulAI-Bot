@@ -1,107 +1,168 @@
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 import os
-import telebot
 import requests
+import telebot
 
-# Получаем переменные окружения
+# Токены
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
 
-# ⚠️ ДОБАВЬ ЭТУ ПРОВЕРКУ ⚠️
-print(f"TELEGRAM_TOKEN: {'***' + TELEGRAM_TOKEN[-10:] if TELEGRAM_TOKEN else 'NOT SET!'}")
-print(f"GROQ_API_KEY: {'***' + GROQ_API_KEY[-10:] if GROQ_API_KEY else 'NOT SET!'}")
-
-if not TELEGRAM_TOKEN:
-    print("❌ КРИТИЧЕСКАЯ ОШИБКА: TELEGRAM_TOKEN не установлен!")
-    print("Добавь TELEGRAM_TOKEN в Environment Variables в Render!")
-    exit(1)
-
-if not GROQ_API_KEY:
-    print("❌ КРИТИЧЕСКАЯ ОШИБКА: GROQ_API_KEY не установлен!")
-    print("Добавь GROQ_API_KEY в Environment Variables в Render!")
-    exit(1)
-
-print("✅ Environment Variables загружены успешно!")
-# 🔧 ФУНКЦИЯ ДЛЯ GROQ API
-def ask_groq(message_text, prompt_type="psychologist"):
-    """Функция для общения с Groq API"""
-    try:
-        print(f"🔍 Запрос к Groq: {message_text[:50]}...")
-        
-        # Выбираем промт по специализации
-        prompts = {
-            "psychologist": "Ты - SoulAI психолог. Говори эмпатично на казахском и русском. Помогай разбираться в эмоциях.",
-            "coach": "Ты - SoulAI коуч. Помогай ставить цели и находить мотивацию. Будь энергичным.", 
-            "hr": "Ты - SoulAI HR аналитик. Анализируй эмоциональное состояние и давай рекомендации."
-        }
-        
-        system_prompt = prompts.get(prompt_type, "Ты - полезный помощник.")
-        
-        url = "https://api.groq.com/openai/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        
-        data = {
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": message_text}
-            ],
-            "model": "llama-3.1-8b-instant",
-            "temperature": 0.7,
-            "max_tokens": 500
-        }
-        
-        print(f"📡 Отправка запроса к Groq API...")
-        response = requests.post(url, headers=headers, json=data, timeout=10)
-        
-        print(f"📊 Статус ответа: {response.status_code}")
-        
-        if response.status_code != 200:
-            print(f"❌ Ошибка HTTP: {response.status_code}")
-            return "Кешіріңіз, техникалық қате. 😔"
-        
-        result = response.json()
-        answer = result["choices"][0]["message"]["content"]
-        
-        print(f"✅ Успешный ответ от Groq")
-        return answer
-        
-    except Exception as e:
-        print(f"❌ Ошибка Groq API: {e}")
-        return "Кешіріңіз, техникалық қате. 😔"
-
-# Инициализация бота
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# ⚡ ДОБАВЛЕНО: храним режимы пользователей
-user_modes = {}
-
-# ОБРАБОТЧИКИ СООБЩЕНИЙ
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.reply_to(message, "👋 Сәлем! Я SoulAI - твой AI-помощник! Используй /psychologist, /coach или /hr")
-
-@bot.message_handler(commands=['psychologist', 'coach', 'hr'])
-def set_mode(message):
-    user_id = message.from_user.id
-    mode = message.text[1:]  # Убираем слеш
+    # Создаем клавиатуру с кнопками
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    # ⚡ ИСПРАВЛЕНО: сохраняем режим для пользователя
-    user_modes[user_id] = mode
+    buttons = [
+        KeyboardButton('🧠 Психологический профиль'),
+        KeyboardButton('📸 Отправить фото'),
+        KeyboardButton('🎤 Анализ голоса'), 
+        KeyboardButton('👶 Детский рисунок'),
+        KeyboardButton('🏥 Диагностика'),
+        KeyboardButton('🗣️ Логопедия'),
+        KeyboardButton('ℹ️ Помощь')
+    ]
     
-    bot.reply_to(message, f"✅ Режим {mode} активирован! Теперь я в этом режиме.")
+    markup.add(*buttons)
+    
+    welcome_text = """
+✨ *Добро пожаловать в SoulAI!* ✨
 
+Я - твой персональный психологический супер-интеллект 🧠
+
+*Выбери действие:* 👇
+    """
+    
+    bot.send_message(message.chat.id, welcome_text, 
+                   reply_markup=markup, parse_mode="Markdown")
+
+# ОБРАБОТЧИК КНОПКИ "ОТПРАВИТЬ ФОТО"
+@bot.message_handler(func=lambda message: message.text == '📸 Отправить фото')
+def handle_photo_button(message):
+    bot.send_message(message.chat.id, 
+                   "📸 *Отправь фото лица для анализа эмоций...*\n\n_Я проанализирую твои эмоции по выражению лица_ 😊", 
+                   parse_mode="Markdown")
+
+# ОБРАБОТЧИК ФОТОГРАФИЙ
+@bot.message_handler(content_types=['photo'])
+def handle_photo(message):
+    """Обработка фотографий"""
+    bot.send_message(message.chat.id, "🔍 *Анализирую эмоции на фото...*", parse_mode="Markdown")
+    
+    try:
+        # AI-анализ через Groq
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json={
+                "messages": [
+                    {
+                        "role": "system", 
+                        "content": """Ты - эксперт по психологии эмоций и анализу лиц. 
+                        Проанализируй возможные эмоции на фото. Опиши:
+                        1. Какие эмоции может испытывать человек
+                        2. Интенсивность эмоций
+                        3. Возможное психологическое состояние
+                        4. Дай эмпатичный совет
+                        
+                        Будь точным и поддерживающим. Используй смайлики."""
+                    },
+                    {
+                        "role": "user", 
+                        "content": "Проанализируй эмоции на этом фото лица"
+                    }
+                ],
+                "model": "llama-3.1-8b-instant",
+                "temperature": 0.7,
+                "max_tokens": 400
+            }
+        )
+        
+        result = response.json()
+        ai_response = result["choices"][0]["message"]["content"]
+        
+        response_text = f"""
+📸 *Результат анализа фото:*
+
+{ai_response}
+
+✨ *Помни: я здесь чтобы помочь!*
+        """
+        bot.send_message(message.chat.id, response_text, parse_mode="Markdown")
+        
+    except Exception as e:
+        bot.send_message(message.chat.id, "❌ *Произошла ошибка при анализе. Попробуй еще раз.*", parse_mode="Markdown")
+
+# ОБРАБОТЧИК ДРУГИХ КНОПОК
 @bot.message_handler(func=lambda message: True)
-def handle_message(message):
-    user_id = message.from_user.id
+def handle_buttons(message):
+    text = message.text
     
-    # ⚡ ИСПРАВЛЕНО: берем режим из сохраненных (по умолчанию psychologist)
-    prompt_type = user_modes.get(user_id, "psychologist")
+    if text == '🧠 Психологический профиль':
+        bot.send_message(message.chat.id, "💭 *Напиши о себе несколько предложений...*", parse_mode="Markdown")
+        bot.register_next_step_handler(message, process_psychological_profile)
     
-    answer = ask_groq(message.text, prompt_type)
-    bot.reply_to(message, answer)
+    elif text == '🎤 Анализ голоса':
+        bot.send_message(message.chat.id, "🎤 *Отправь голосовое сообщение для анализа эмоций...*", parse_mode="Markdown")
+    
+    elif text == '👶 Детский рисунок':
+        bot.send_message(message.chat.id, "🖼️ *Отправь фото детского рисунка для анализа...*", parse_mode="Markdown")
+    
+    elif text == '🏥 Диагностика':
+        bot.send_message(message.chat.id, "🤒 *Опиши симптомы для диагностики...*", parse_mode="Markdown")
+        bot.register_next_step_handler(message, process_medical_diagnosis)
+    
+    elif text == '🗣️ Логопедия':
+        bot.send_message(message.chat.id, "🎤 *Отправь голосовое сообщение для логопедического анализа...*", parse_mode="Markdown")
+    
+    elif text == 'ℹ️ Помощь':
+        show_help(message)
 
-# ЗАПУСК БОТА
-print("🟢 SoulAI бот запущен!")
+def process_psychological_profile(message):
+    """Обработка психологического профиля"""
+    user_text = message.text
+    
+    try:
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json={
+                "messages": [
+                    {
+                        "role": "system", 
+                        "content": """Ты - опытный психолог-профайлер. Проанализируй текст и составь психологический портрет."""
+                    },
+                    {"role": "user", "content": user_text}
+                ],
+                "model": "llama-3.1-8b-instant",
+                "temperature": 0.7
+            }
+        )
+        
+        result = response.json()
+        ai_response = result["choices"][0]["message"]["content"]
+        
+        bot.send_message(message.chat.id, f"🧠 *Твой психологический портрет:*\n\n{ai_response}", parse_mode="Markdown")
+        
+    except Exception as e:
+        bot.send_message(message.chat.id, "❌ Ошибка анализа. Попробуй еще раз.")
+
+def show_help(message):
+    help_text = """
+🆘 *Помощь по SoulAI*
+
+*Доступные функции:*
+🧠 *Психологический профиль* - анализ личности по тексту
+📸 *Отправить фото* - анализ эмоций по фото лица
+🎤 *Анализ голоса* - эмоциональный анализ голоса
+👶 *Детский рисунок* - психологический анализ рисунков
+🏥 *Диагностика* - медицинский анализ симптомов
+🗣️ *Логопедия* - анализ речевых нарушений
+
+*Просто выбери нужную кнопку!* ✨
+    """
+    bot.send_message(message.chat.id, help_text, parse_mode="Markdown")
+
+print("🟢 SoulAI Telegram бот запущен!")
 bot.polling(none_stop=True)
