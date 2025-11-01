@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: soulai-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot_v3.py
+    envVars:
+      - key: TELEGRAM_TOKEN
+        value: ваш_токен_здесь
+      - key: GROQ_API_KEY  
+        value: ваш_ключ_groq_здесь
