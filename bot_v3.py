@@ -7,7 +7,7 @@ from prompts import PSYCHOLOGIST_PROMPT, COACH_PROMPT, HR_ANALYST_PROMPT
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = "8480886270:AAFmK2WZkgfQ5_xmHZXNMJBdepFB7sblKm8"
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
