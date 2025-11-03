@@ -1,3 +1,7 @@
+from ai_module import AIModule
+
+# Инициализируем AI модуль
+ai = AIModule()
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 import os
 import requests
