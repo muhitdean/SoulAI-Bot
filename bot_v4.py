@@ -24,3 +24,11 @@ def handle_message(message):
 if __name__ == "__main__":
     print("🟢 Бот запущен!")
     bot.polling(none_stop=True)
+import time
+
+if __name__ == "__main__":
+    print("🟢 Бот запущен!")
+    # Очищаем старые вебхуки
+    bot.remove_webhook()
+    time.sleep(1)
+    bot.polling(none_stop=True)
