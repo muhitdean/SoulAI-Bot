@@ -14,6 +14,7 @@ def start(message):
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     try:
+        bot.send_chat_action(message.chat.id, 'typing')
         user_id = str(message.chat.id)
         response = ai.generate_response(user_id, message.text)
         bot.send_message(message.chat.id, response)
