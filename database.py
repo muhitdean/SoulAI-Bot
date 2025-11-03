@@ -7,4 +7,7 @@ class Database:
         self.supabase_key = os.getenv("SUPABASE_KEY")
     
     def save_conversation(self, user_id, user_message, bot_response, emotion):
-        # ... остальной код БЕЗ supabase ...
+        return True
+    
+    def get_user_history(self, user_id, limit=5):
+        return []
